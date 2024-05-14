@@ -44,13 +44,13 @@ const SortableItem: React.FC<{ id: UniqueIdentifier }> = ({ id }) => {
 };
 
 interface DroppableContainerProps {
+  id: UniqueIdentifier;
   items: UniqueIdentifier[];
   children: React.ReactNode;
-  isOver: boolean;
-  setNodeRef: (element: HTMLElement | null) => void;
 }
 
-const DroppableContainer: React.FC<DroppableContainerProps> = ({ items, children, isOver, setNodeRef }) => {
+const DroppableContainer: React.FC<DroppableContainerProps> = ({ id, items, children }) => {
+  const { setNodeRef, isOver } = useDroppable({ id });
   const style = {
     backgroundColor: isOver ? 'lightblue' : undefined,
   };
@@ -74,9 +74,6 @@ const App: React.FC = () => {
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
-
-  const { setNodeRef: setNodeRef1, isOver: isOverContainer1 } = useDroppable({ id: 'items1' });
-  const { setNodeRef: setNodeRef2, isOver: isOverContainer2 } = useDroppable({ id: 'items2' });
 
   const findContainer = (id: UniqueIdentifier) => {
     if (items1.includes(id)) return 'items1';
@@ -152,13 +149,13 @@ const App: React.FC = () => {
       onDragEnd={handleDragEnd}
     >
       <div className="container">
-        <DroppableContainer items={items1} isOver={isOverContainer1} setNodeRef={setNodeRef1}>
+        <DroppableContainer id="items1" items={items1}>
           {items1.map((id) => (
             <SortableItem key={id} id={id} />
           ))}
         </DroppableContainer>
 
-        <DroppableContainer items={items2} isOver={isOverContainer2} setNodeRef={setNodeRef2}>
+        <DroppableContainer id="items2" items={items2}>
           {items2.map((id) => (
             <SortableItem key={id} id={id} />
           ))}

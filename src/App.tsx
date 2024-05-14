@@ -27,20 +27,28 @@ const SortableItem: React.FC<{ id: UniqueIdentifier }> = ({ id }) => {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    padding: '10px',
-    margin: '5px 0',
-    backgroundColor: isDragging ? 'lightgreen' : 'lightcoral',
-    cursor: 'pointer',
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`sortable-item ${isDragging ? 'dragging' : ''}`}
+      {...attributes}
+      {...listeners}
+    >
       {id}
     </div>
   );
 };
 
-const DroppableContainer: React.FC<{ id: string; items: UniqueIdentifier[] }> = ({ id, items, children }) => {
+interface DroppableContainerProps {
+  id: string;
+  items: UniqueIdentifier[];
+  children: React.ReactNode;
+}
+
+const DroppableContainer: React.FC<DroppableContainerProps> = ({ id, items, children }) => {
   const { setNodeRef } = useDroppable({ id });
 
   return (
@@ -62,7 +70,15 @@ const App: React.FC = () => {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const findContainer = (id: UniqueIdentifier) => (items1.includes(id) ? 'items1' : items2.includes(id) ? 'items2' : null);
+  const findContainer = (id: UniqueIdentifier) => {
+    if (items1.includes(id)) return 'items1';
+    if (items2.includes(id)) return 'items2';
+    return null;
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id);
+  };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over) {
@@ -83,7 +99,7 @@ const App: React.FC = () => {
 
         setActiveItems((items) => items.filter((item) => item !== active.id));
         setOverItems((items) => {
-          const newIndex = items.indexOf(over.id);
+          const newIndex = over.id ? items.indexOf(over.id) : items.length;
           return [...items.slice(0, newIndex), active.id, ...items.slice(newIndex)];
         });
       }
@@ -92,11 +108,15 @@ const App: React.FC = () => {
     setActiveId(null);
   };
 
+  const activeItem = activeId
+    ? items1.find((item) => item === activeId) || items2.find((item) => item === activeId)
+    : null;
+
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      onDragStart={({ active }) => setActiveId(active.id)}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <div className="container">
@@ -112,7 +132,11 @@ const App: React.FC = () => {
           ))}
         </DroppableContainer>
       </div>
-      <DragOverlay>{activeId && <SortableItem id={activeId} />}</DragOverlay>
+      <DragOverlay>
+        {activeItem ? (
+          <div className="sortable-item">{activeItem}</div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 };

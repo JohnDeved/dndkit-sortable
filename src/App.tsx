@@ -132,28 +132,38 @@ const App: React.FC = () => {
         }
       }
     } else {
-      let newIndex;
-      if (overContainer === 'items1') {
-        newIndex = items1.indexOf(over.id as UniqueIdentifier);
-        setItems1((prevItems) => {
-          const newItems = [...prevItems];
-          newItems.splice(newIndex, 0, active.id as UniqueIdentifier);
-          return newItems;
-        });
-        setItems2((prevItems) => prevItems.filter((item) => item !== active.id));
-      } else {
-        newIndex = items2.indexOf(over.id as UniqueIdentifier);
-        setItems2((prevItems) => {
-          const newItems = [...prevItems];
-          newItems.splice(newIndex, 0, active.id as UniqueIdentifier);
-          return newItems;
-        });
+      if (activeContainer === 'items1') {
         setItems1((prevItems) => prevItems.filter((item) => item !== active.id));
+        const overIndex = overId ? items2.indexOf(over.id as UniqueIdentifier) : items2.length;
+        setItems2((prevItems) => [
+          ...prevItems.slice(0, overIndex),
+          active.id,
+          ...prevItems.slice(overIndex),
+        ]);
+      } else {
+        setItems2((prevItems) => prevItems.filter((item) => item !== active.id));
+        const overIndex = overId ? items1.indexOf(over.id as UniqueIdentifier) : items1.length;
+        setItems1((prevItems) => [
+          ...prevItems.slice(0, overIndex),
+          active.id,
+          ...prevItems.slice(overIndex),
+        ]);
       }
     }
 
     setActiveId(null);
     setOverId(null);
+  };
+
+  const renderPlaceholder = (container: string) => {
+    const items = container === 'items1' ? items1 : items2;
+    const index = items.indexOf(overId as UniqueIdentifier);
+
+    if (index === -1) {
+      return null;
+    }
+
+    return <div key="placeholder" className="sortable-placeholder" style={{ order: index }}>&nbsp;</div>;
   };
 
   return (
@@ -170,9 +180,7 @@ const App: React.FC = () => {
             {items1.map((id) => (
               <SortableItem key={id} id={id} />
             ))}
-            {overId && findContainer(overId) === 'items1' && (
-              <div className="sortable-placeholder" />
-            )}
+            {overId && findContainer(overId) === 'items1' && renderPlaceholder('items1')}
           </div>
         </SortableContext>
 
@@ -181,9 +189,7 @@ const App: React.FC = () => {
             {items2.map((id) => (
               <SortableItem key={id} id={id} />
             ))}
-            {overId && findContainer(overId) === 'items2' && (
-              <div className="sortable-placeholder" />
-            )}
+            {overId && findContainer(overId) === 'items2' && renderPlaceholder('items2')}
           </div>
         </SortableContext>
       </div>

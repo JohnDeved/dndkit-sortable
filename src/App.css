@@ -11,3 +11,10 @@
   height: 300px;
   overflow-y: auto;
 }
+
+.sortable-placeholder {
+  height: 10px;
+  margin: 5px 0;
+  background-color: yellow;
+  border: 2px dashed black;
+}

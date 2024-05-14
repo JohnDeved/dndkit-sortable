@@ -12,7 +12,7 @@ import {
   defaultDropAnimation,
   DropAnimation,
   UniqueIdentifier,
-  DragMoveEvent,
+  DragOverEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -64,6 +64,7 @@ const App: React.FC = () => {
   const [items2, setItems2] = useState<UniqueIdentifier[]>(['Item 4', 'Item 5', 'Item 6']);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overContainer, setOverContainer] = useState<string | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -85,17 +86,25 @@ const App: React.FC = () => {
     setActiveId(event.active.id as UniqueIdentifier);
   };
 
-  const handleDragOver = (event: DragMoveEvent) => {
+  const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
-    const activeContainer = findContainer(active.id as UniqueIdentifier);
-    const overContainer = findContainer(over?.id as UniqueIdentifier);
+    if (!over) return;
 
-    if (!overContainer || activeContainer === overContainer) {
+    const activeContainer = findContainer(active.id as UniqueIdentifier);
+    const overContainer = findContainer(over.id as UniqueIdentifier);
+
+    if (!activeContainer || !overContainer || activeContainer === overContainer) {
       setOverContainer(null);
+      setOverIndex(null);
       return;
     }
 
+    const overIndex = overContainer === 'items1'
+      ? items1.indexOf(over.id as UniqueIdentifier)
+      : items2.indexOf(over.id as UniqueIdentifier);
+
     setOverContainer(overContainer);
+    setOverIndex(overIndex);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -103,6 +112,7 @@ const App: React.FC = () => {
     if (!over) {
       setActiveId(null);
       setOverContainer(null);
+      setOverIndex(null);
       return;
     }
 
@@ -112,6 +122,7 @@ const App: React.FC = () => {
     if (!activeContainer || !overContainer) {
       setActiveId(null);
       setOverContainer(null);
+      setOverIndex(null);
       return;
     }
 
@@ -132,16 +143,28 @@ const App: React.FC = () => {
         }
       }
     } else {
-      if (activeContainer === 'items1') {
-        setItems1((prevItems) => prevItems.filter((item) => item !== active.id));
-        setItems2((prevItems) => [...prevItems, active.id as UniqueIdentifier]);
-      } else {
+      if (overContainer === 'items1') {
+        setItems1((prevItems) => {
+          const newItems = [...prevItems];
+          const newIndex = overIndex !== null ? overIndex : prevItems.length;
+          newItems.splice(newIndex, 0, active.id as UniqueIdentifier);
+          return newItems;
+        });
         setItems2((prevItems) => prevItems.filter((item) => item !== active.id));
-        setItems1((prevItems) => [...prevItems, active.id as UniqueIdentifier]);
+      } else {
+        setItems2((prevItems) => {
+          const newItems = [...prevItems];
+          const newIndex = overIndex !== null ? overIndex : prevItems.length;
+          newItems.splice(newIndex, 0, active.id as UniqueIdentifier);
+          return newItems;
+        });
+        setItems1((prevItems) => prevItems.filter((item) => item !== active.id));
       }
     }
+
     setActiveId(null);
     setOverContainer(null);
+    setOverIndex(null);
   };
 
   return (
@@ -149,7 +172,7 @@ const App: React.FC = () => {
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
-      onDragMove={handleDragOver}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div className="container">
@@ -158,6 +181,11 @@ const App: React.FC = () => {
             {items1.map((id) => (
               <SortableItem key={id} id={id} />
             ))}
+            {overContainer === 'items1' && overIndex !== null && (
+              <div className="sortable-placeholder" style={{ order: overIndex }}>
+                &nbsp;
+              </div>
+            )}
           </div>
         </SortableContext>
 
@@ -166,6 +194,11 @@ const App: React.FC = () => {
             {items2.map((id) => (
               <SortableItem key={id} id={id} />
             ))}
+            {overContainer === 'items2' && overIndex !== null && (
+              <div className="sortable-placeholder" style={{ order: overIndex }}>
+                &nbsp;
+              </div>
+            )}
           </div>
         </SortableContext>
       </div>

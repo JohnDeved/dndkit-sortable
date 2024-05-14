@@ -90,28 +90,29 @@ const App: React.FC = () => {
 
   const handleDragOver = ({ active, over }: DragOverEvent) => {
     const activeContainer = findContainer(active.id);
-    const overContainer = over?.id && findContainer(over.id);
+    let overContainer = findContainer(over?.id || '');
 
-    if (!overContainer) {
-      if (over?.id === 'items1') {
-        setIsOver1(true);
-        setIsOver2(false);
-      } else if (over?.id === 'items2') {
-        setIsOver1(false);
-        setIsOver2(true);
-      }
+    if (over?.id === 'items1' || over?.id === 'items2') {
+      overContainer = over.id;
+    }
+
+    if (!overContainer || !activeContainer || activeContainer === overContainer) {
       return;
     }
 
-    if (!activeContainer || activeContainer === overContainer) {
-      return;
+    if (overContainer === 'items1') {
+      setIsOver1(true);
+      setIsOver2(false);
+    } else if (overContainer === 'items2') {
+      setIsOver1(false);
+      setIsOver2(true);
     }
 
     const activeItems = activeContainer === 'items1' ? items1 : items2;
     const overItems = overContainer === 'items1' ? items1 : items2;
 
     const activeIndex = activeItems.indexOf(active.id);
-    const overIndex = over.id ? overItems.indexOf(over.id) : overItems.length;
+    const overIndex = over?.id ? overItems.indexOf(over.id) : overItems.length;
 
     if (activeIndex !== -1) {
       activeItems.splice(activeIndex, 1);
@@ -135,7 +136,11 @@ const App: React.FC = () => {
     if (!over) return;
 
     const activeContainer = findContainer(active.id);
-    const overContainer = findContainer(over.id);
+    let overContainer = findContainer(over.id);
+
+    if (over?.id === 'items1' || over?.id === 'items2') {
+      overContainer = over.id;
+    }
 
     if (activeContainer && overContainer) {
       if (activeContainer === overContainer) {

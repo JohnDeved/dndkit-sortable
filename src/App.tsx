@@ -7,6 +7,7 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragOverEvent,
   DragStartEvent,
   DragOverlay,
   UniqueIdentifier,
@@ -76,8 +77,33 @@ const App: React.FC = () => {
     return null;
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id);
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    setActiveId(active.id);
+  };
+
+  const handleDragOver = ({ active, over }: DragOverEvent) => {
+    const activeContainer = findContainer(active.id);
+    const overContainer = findContainer(over?.id || '');
+
+    if (!overContainer || !activeContainer || activeContainer === overContainer) {
+      return;
+    }
+
+    const activeItems = activeContainer === 'items1' ? items1 : items2;
+    const overItems = overContainer === 'items1' ? items1 : items2;
+
+    const activeIndex = activeItems.indexOf(active.id);
+    const overIndex = overItems.indexOf(over?.id || '');
+
+    if (activeIndex !== overIndex) {
+      if (activeContainer === 'items1') {
+        setItems1((items) => items.filter((item) => item !== active.id));
+        setItems2((items) => [...items.slice(0, overIndex), active.id, ...items.slice(overIndex)]);
+      } else {
+        setItems2((items) => items.filter((item) => item !== active.id));
+        setItems1((items) => [...items.slice(0, overIndex), active.id, ...items.slice(overIndex)]);
+      }
+    }
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -117,6 +143,7 @@ const App: React.FC = () => {
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div className="container">
@@ -134,7 +161,7 @@ const App: React.FC = () => {
       </div>
       <DragOverlay>
         {activeItem ? (
-          <div className="sortable-item">{activeItem}</div>
+          <SortableItem id={activeItem} />
         ) : null}
       </DragOverlay>
     </DndContext>

@@ -10,6 +10,7 @@ import {
   DragStartEvent,
   DragOverlay,
   UniqueIdentifier,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -21,13 +22,9 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import './App.css';
 
-interface SortableItemProps {
-  id: UniqueIdentifier;
-}
-
-const SortableItem: React.FC<SortableItemProps> = ({ id }) => {
+const SortableItem: React.FC<{ id: UniqueIdentifier }> = ({ id }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const style: React.CSSProperties = {
+  const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     padding: '10px',
@@ -43,6 +40,18 @@ const SortableItem: React.FC<SortableItemProps> = ({ id }) => {
   );
 };
 
+const DroppableContainer: React.FC<{ id: string; items: UniqueIdentifier[] }> = ({ id, items, children }) => {
+  const { setNodeRef } = useDroppable({ id });
+
+  return (
+    <div ref={setNodeRef} className="sortable-list">
+      <SortableContext items={items} strategy={rectSortingStrategy}>
+        {children}
+      </SortableContext>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [items1, setItems1] = useState<UniqueIdentifier[]>(['Item 1', 'Item 2', 'Item 3']);
   const [items2, setItems2] = useState<UniqueIdentifier[]>(['Item 4', 'Item 5', 'Item 6']);
@@ -50,28 +59,12 @@ const App: React.FC = () => {
 
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const findContainer = (id: UniqueIdentifier) => {
-    if (items1.includes(id)) {
-      return 'items1';
-    }
-    if (items2.includes(id)) {
-      return 'items2';
-    }
-    return null;
-  };
+  const findContainer = (id: UniqueIdentifier) => (items1.includes(id) ? 'items1' : items2.includes(id) ? 'items2' : null);
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over) {
       setActiveId(null);
       return;
@@ -80,23 +73,17 @@ const App: React.FC = () => {
     const activeContainer = findContainer(active.id);
     const overContainer = findContainer(over.id);
 
-    if (activeContainer === overContainer) {
-      if (activeContainer === 'items1') {
-        setItems1((items) => arrayMove(items, items.indexOf(active.id), items.indexOf(over.id)));
+    if (activeContainer && overContainer) {
+      if (activeContainer === overContainer) {
+        const setItems = activeContainer === 'items1' ? setItems1 : setItems2;
+        setItems((items) => arrayMove(items, items.indexOf(active.id), items.indexOf(over.id)));
       } else {
-        setItems2((items) => arrayMove(items, items.indexOf(active.id), items.indexOf(over.id)));
-      }
-    } else {
-      if (activeContainer === 'items1') {
-        setItems1((items) => items.filter((item) => item !== active.id));
-        setItems2((items) => {
-          const newIndex = over.id ? items.indexOf(over.id) : items.length;
-          return [...items.slice(0, newIndex), active.id, ...items.slice(newIndex)];
-        });
-      } else {
-        setItems2((items) => items.filter((item) => item !== active.id));
-        setItems1((items) => {
-          const newIndex = over.id ? items.indexOf(over.id) : items.length;
+        const setActiveItems = activeContainer === 'items1' ? setItems1 : setItems2;
+        const setOverItems = overContainer === 'items1' ? setItems1 : setItems2;
+
+        setActiveItems((items) => items.filter((item) => item !== active.id));
+        setOverItems((items) => {
+          const newIndex = items.indexOf(over.id);
           return [...items.slice(0, newIndex), active.id, ...items.slice(newIndex)];
         });
       }
@@ -109,27 +96,23 @@ const App: React.FC = () => {
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
+      onDragStart={({ active }) => setActiveId(active.id)}
       onDragEnd={handleDragEnd}
     >
       <div className="container">
-        <SortableContext items={items1} strategy={rectSortingStrategy}>
-          <div className="sortable-list">
-            {items1.map((id) => (
-              <SortableItem key={id} id={id} />
-            ))}
-          </div>
-        </SortableContext>
+        <DroppableContainer id="items1" items={items1}>
+          {items1.map((id) => (
+            <SortableItem key={id} id={id} />
+          ))}
+        </DroppableContainer>
 
-        <SortableContext items={items2} strategy={rectSortingStrategy}>
-          <div className="sortable-list">
-            {items2.map((id) => (
-              <SortableItem key={id} id={id} />
-            ))}
-          </div>
-        </SortableContext>
+        <DroppableContainer id="items2" items={items2}>
+          {items2.map((id) => (
+            <SortableItem key={id} id={id} />
+          ))}
+        </DroppableContainer>
       </div>
-      <DragOverlay>{activeId ? <SortableItem id={activeId} /> : null}</DragOverlay>
+      <DragOverlay>{activeId && <SortableItem id={activeId} />}</DragOverlay>
     </DndContext>
   );
 };

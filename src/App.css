@@ -10,11 +10,6 @@
   width: 200px;
   height: 300px;
   overflow-y: auto;
-}
-
-.sortable-placeholder {
-  height: 40px;
-  margin: 5px 0;
-  background-color: yellow;
-  border: 2px dashed black;
+  display: flex;
+  flex-direction: column;
 }

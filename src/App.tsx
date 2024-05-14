@@ -10,9 +10,6 @@ import {
   DragStartEvent,
   DragOverlay,
   UniqueIdentifier,
-  DragOverEvent,
-  defaultDropAnimation,
-  DropAnimation,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -25,19 +22,11 @@ import { CSS } from '@dnd-kit/utilities';
 import './App.css';
 
 interface SortableItemProps {
-  id: string;
+  id: UniqueIdentifier;
 }
 
 const SortableItem: React.FC<SortableItemProps> = ({ id }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
-
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -54,17 +43,10 @@ const SortableItem: React.FC<SortableItemProps> = ({ id }) => {
   );
 };
 
-const dropAnimationConfig: DropAnimation = {
-  ...defaultDropAnimation,
-  dragSourceOpacity: 0.5,
-};
-
 const App: React.FC = () => {
   const [items1, setItems1] = useState<UniqueIdentifier[]>(['Item 1', 'Item 2', 'Item 3']);
   const [items2, setItems2] = useState<UniqueIdentifier[]>(['Item 4', 'Item 5', 'Item 6']);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
-  const [activeContainer, setActiveContainer] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -73,87 +55,22 @@ const App: React.FC = () => {
     })
   );
 
-  const findContainer = (id: UniqueIdentifier) => {
-    if (items1.includes(id)) {
-      return 'items1';
-    } else if (items2.includes(id)) {
-      return 'items2';
-    }
-    return null;
-  };
-
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as UniqueIdentifier);
-    setActiveContainer(findContainer(event.active.id as UniqueIdentifier));
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) {
-      setOverId(null);
-      return;
-    }
-    setOverId(over.id as UniqueIdentifier);
+    setActiveId(event.active.id);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over) {
-      setActiveId(null);
-      setOverId(null);
-      setActiveContainer(null);
-      return;
-    }
 
-    const activeContainer = findContainer(active.id as UniqueIdentifier);
-    const overContainer = findContainer(over.id as UniqueIdentifier);
-
-    if (!activeContainer || !overContainer) {
-      setActiveId(null);
-      setOverId(null);
-      setActiveContainer(null);
-      return;
-    }
-
-    if (activeContainer === overContainer) {
-      if (active.id !== over.id) {
-        if (activeContainer === 'items1') {
-          setItems1((prevItems) => {
-            const activeIndex = prevItems.indexOf(active.id as UniqueIdentifier);
-            const overIndex = prevItems.indexOf(over.id as UniqueIdentifier);
-            return arrayMove(prevItems, activeIndex, overIndex);
-          });
-        } else {
-          setItems2((prevItems) => {
-            const activeIndex = prevItems.indexOf(active.id as UniqueIdentifier);
-            const overIndex = prevItems.indexOf(over.id as UniqueIdentifier);
-            return arrayMove(prevItems, activeIndex, overIndex);
-          });
-        }
-      }
-    } else {
-      if (activeContainer === 'items1') {
-        setItems1((prevItems) => prevItems.filter((item) => item !== active.id));
-        const overIndex = over.id ? items2.indexOf(over.id as UniqueIdentifier) : items2.length;
-        setItems2((prevItems) => [
-          ...prevItems.slice(0, overIndex),
-          active.id,
-          ...prevItems.slice(overIndex),
-        ]);
+    if (over && active.id !== over.id) {
+      if (items1.includes(active.id)) {
+        setItems1((prevItems) => arrayMove(prevItems, prevItems.indexOf(active.id), prevItems.indexOf(over.id)));
       } else {
-        setItems2((prevItems) => prevItems.filter((item) => item !== active.id));
-        const overIndex = over.id ? items1.indexOf(over.id as UniqueIdentifier) : items1.length;
-        setItems1((prevItems) => [
-          ...prevItems.slice(0, overIndex),
-          active.id,
-          ...prevItems.slice(overIndex),
-        ]);
+        setItems2((prevItems) => arrayMove(prevItems, prevItems.indexOf(active.id), prevItems.indexOf(over.id)));
       }
     }
 
     setActiveId(null);
-    setOverId(null);
-    setActiveContainer(null);
   };
 
   return (
@@ -161,7 +78,6 @@ const App: React.FC = () => {
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div className="container">
@@ -181,9 +97,7 @@ const App: React.FC = () => {
           </div>
         </SortableContext>
       </div>
-      <DragOverlay dropAnimation={dropAnimationConfig}>
-        {activeId ? <SortableItem id={activeId} /> : null}
-      </DragOverlay>
+      <DragOverlay>{activeId ? <SortableItem id={activeId} /> : null}</DragOverlay>
     </DndContext>
   );
 };

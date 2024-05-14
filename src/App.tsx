@@ -92,27 +92,20 @@ const App: React.FC = () => {
     const activeContainer = findContainer(active.id);
     const overContainer = over?.id && findContainer(over.id);
 
-    if (!activeContainer || !overContainer || activeContainer === overContainer) {
-      return;
-    }
+    if (!activeContainer || !overContainer || activeContainer === overContainer) return;
 
-    const activeItems = activeContainer === 'items1' ? items1 : items2;
-    const overItems = overContainer === 'items1' ? items1 : items2;
+    const activeItems = activeContainer === 'items1' ? [...items1] : [...items2];
+    const overItems = overContainer === 'items1' ? [...items1] : [...items2];
 
     const activeIndex = activeItems.indexOf(active.id);
     const overIndex = over.id ? overItems.indexOf(over.id) : overItems.length;
 
-    if (activeIndex !== -1 && overIndex !== -1) {
+    if (activeIndex !== -1) {
       activeItems.splice(activeIndex, 1);
       overItems.splice(overIndex, 0, active.id);
 
-      if (activeContainer === 'items1') {
-        setItems1([...activeItems]);
-        setItems2([...overItems]);
-      } else {
-        setItems2([...activeItems]);
-        setItems1([...overItems]);
-      }
+      activeContainer === 'items1' ? setItems1(activeItems) : setItems2(activeItems);
+      overContainer === 'items1' ? setItems1(overItems) : setItems2(overItems);
     }
   };
 
@@ -148,9 +141,7 @@ const App: React.FC = () => {
     setActiveId(null);
   };
 
-  const activeItem = activeId
-    ? items1.find((item) => item === activeId) || items2.find((item) => item === activeId)
-    : null;
+  const activeItem = activeId ? items1.concat(items2).find((item) => item === activeId) : null;
 
   return (
     <DndContext
@@ -161,22 +152,20 @@ const App: React.FC = () => {
       onDragEnd={handleDragEnd}
     >
       <div className="container">
-        <DroppableContainer id="items1" items={items1} isOver={isOverContainer1} setNodeRef={setNodeRef1}>
+        <DroppableContainer items={items1} isOver={isOverContainer1} setNodeRef={setNodeRef1}>
           {items1.map((id) => (
             <SortableItem key={id} id={id} />
           ))}
         </DroppableContainer>
 
-        <DroppableContainer id="items2" items={items2} isOver={isOverContainer2} setNodeRef={setNodeRef2}>
+        <DroppableContainer items={items2} isOver={isOverContainer2} setNodeRef={setNodeRef2}>
           {items2.map((id) => (
             <SortableItem key={id} id={id} />
           ))}
         </DroppableContainer>
       </div>
       <DragOverlay>
-        {activeItem ? (
-          <SortableItem id={activeItem} />
-        ) : null}
+        {activeItem && <SortableItem id={activeItem} />}
       </DragOverlay>
     </DndContext>
   );

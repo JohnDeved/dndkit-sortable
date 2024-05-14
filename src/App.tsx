@@ -55,6 +55,16 @@ const App: React.FC = () => {
     })
   );
 
+  const findContainer = (id: UniqueIdentifier) => {
+    if (items1.includes(id)) {
+      return 'items1';
+    }
+    if (items2.includes(id)) {
+      return 'items2';
+    }
+    return null;
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id);
   };
@@ -62,11 +72,33 @@ const App: React.FC = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (over && active.id !== over.id) {
-      if (items1.includes(active.id)) {
-        setItems1((prevItems) => arrayMove(prevItems, prevItems.indexOf(active.id), prevItems.indexOf(over.id)));
+    if (!over) {
+      setActiveId(null);
+      return;
+    }
+
+    const activeContainer = findContainer(active.id);
+    const overContainer = findContainer(over.id);
+
+    if (activeContainer === overContainer) {
+      if (activeContainer === 'items1') {
+        setItems1((items) => arrayMove(items, items.indexOf(active.id), items.indexOf(over.id)));
       } else {
-        setItems2((prevItems) => arrayMove(prevItems, prevItems.indexOf(active.id), prevItems.indexOf(over.id)));
+        setItems2((items) => arrayMove(items, items.indexOf(active.id), items.indexOf(over.id)));
+      }
+    } else {
+      if (activeContainer === 'items1') {
+        setItems1((items) => items.filter((item) => item !== active.id));
+        setItems2((items) => {
+          const newIndex = over.id ? items.indexOf(over.id) : items.length;
+          return [...items.slice(0, newIndex), active.id, ...items.slice(newIndex)];
+        });
+      } else {
+        setItems2((items) => items.filter((item) => item !== active.id));
+        setItems1((items) => {
+          const newIndex = over.id ? items.indexOf(over.id) : items.length;
+          return [...items.slice(0, newIndex), active.id, ...items.slice(newIndex)];
+        });
       }
     }
 

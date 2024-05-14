@@ -63,8 +63,7 @@ const App: React.FC = () => {
   const [items1, setItems1] = useState<UniqueIdentifier[]>(['Item 1', 'Item 2', 'Item 3']);
   const [items2, setItems2] = useState<UniqueIdentifier[]>(['Item 4', 'Item 5', 'Item 6']);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const [overContainer, setOverContainer] = useState<string | null>(null);
-  const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -88,31 +87,22 @@ const App: React.FC = () => {
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
-    if (!over) return;
-
     const activeContainer = findContainer(active.id as UniqueIdentifier);
-    const overContainer = findContainer(over.id as UniqueIdentifier);
+    const overContainer = findContainer(over?.id as UniqueIdentifier);
 
-    if (!activeContainer || !overContainer || activeContainer === overContainer) {
-      setOverContainer(null);
-      setOverIndex(null);
+    if (!over || activeContainer === overContainer) {
+      setOverId(null);
       return;
     }
 
-    const overIndex = overContainer === 'items1'
-      ? items1.indexOf(over.id as UniqueIdentifier)
-      : items2.indexOf(over.id as UniqueIdentifier);
-
-    setOverContainer(overContainer);
-    setOverIndex(overIndex);
+    setOverId(over.id as UniqueIdentifier);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) {
       setActiveId(null);
-      setOverContainer(null);
-      setOverIndex(null);
+      setOverId(null);
       return;
     }
 
@@ -121,8 +111,7 @@ const App: React.FC = () => {
 
     if (!activeContainer || !overContainer) {
       setActiveId(null);
-      setOverContainer(null);
-      setOverIndex(null);
+      setOverId(null);
       return;
     }
 
@@ -143,18 +132,19 @@ const App: React.FC = () => {
         }
       }
     } else {
+      let newIndex;
       if (overContainer === 'items1') {
+        newIndex = items1.indexOf(over.id as UniqueIdentifier);
         setItems1((prevItems) => {
           const newItems = [...prevItems];
-          const newIndex = overIndex !== null ? overIndex : prevItems.length;
           newItems.splice(newIndex, 0, active.id as UniqueIdentifier);
           return newItems;
         });
         setItems2((prevItems) => prevItems.filter((item) => item !== active.id));
       } else {
+        newIndex = items2.indexOf(over.id as UniqueIdentifier);
         setItems2((prevItems) => {
           const newItems = [...prevItems];
-          const newIndex = overIndex !== null ? overIndex : prevItems.length;
           newItems.splice(newIndex, 0, active.id as UniqueIdentifier);
           return newItems;
         });
@@ -163,8 +153,7 @@ const App: React.FC = () => {
     }
 
     setActiveId(null);
-    setOverContainer(null);
-    setOverIndex(null);
+    setOverId(null);
   };
 
   return (
@@ -181,10 +170,8 @@ const App: React.FC = () => {
             {items1.map((id) => (
               <SortableItem key={id} id={id} />
             ))}
-            {overContainer === 'items1' && overIndex !== null && (
-              <div className="sortable-placeholder" style={{ order: overIndex }}>
-                &nbsp;
-              </div>
+            {overId && findContainer(overId) === 'items1' && (
+              <div className="sortable-placeholder" />
             )}
           </div>
         </SortableContext>
@@ -194,10 +181,8 @@ const App: React.FC = () => {
             {items2.map((id) => (
               <SortableItem key={id} id={id} />
             ))}
-            {overContainer === 'items2' && overIndex !== null && (
-              <div className="sortable-placeholder" style={{ order: overIndex }}>
-                &nbsp;
-              </div>
+            {overId && findContainer(overId) === 'items2' && (
+              <div className="sortable-placeholder" />
             )}
           </div>
         </SortableContext>

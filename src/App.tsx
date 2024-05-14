@@ -132,6 +132,8 @@ const App: React.FC = () => {
     } else if (over?.id === 'items1' || over?.id === 'items2') {
       const newContainer = over.id === 'items1' ? 'items1' : 'items2';
       const setItems = newContainer === 'items1' ? setItems1 : setItems2;
+      const removeItems = activeContainer === 'items1' ? setItems1 : setItems2;
+      removeItems((items) => items.filter((item) => item !== active.id));
       setItems((items) => [...items, active.id]);
     }
 

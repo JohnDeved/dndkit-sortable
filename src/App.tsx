@@ -44,14 +44,13 @@ const SortableItem: React.FC<{ id: UniqueIdentifier }> = ({ id }) => {
 };
 
 interface DroppableContainerProps {
-  id: string;
   items: UniqueIdentifier[];
   children: React.ReactNode;
   isOver: boolean;
   setNodeRef: (element: HTMLElement | null) => void;
 }
 
-const DroppableContainer: React.FC<DroppableContainerProps> = ({ id, items, children, isOver, setNodeRef }) => {
+const DroppableContainer: React.FC<DroppableContainerProps> = ({ items, children, isOver, setNodeRef }) => {
   const style = {
     backgroundColor: isOver ? 'lightblue' : undefined,
   };
@@ -70,13 +69,14 @@ const App: React.FC = () => {
   const [items1, setItems1] = useState<UniqueIdentifier[]>(['Item 1', 'Item 2', 'Item 3']);
   const [items2, setItems2] = useState<UniqueIdentifier[]>(['Item 4', 'Item 5', 'Item 6']);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const [isOver1, setIsOver1] = useState(false);
-  const [isOver2, setIsOver2] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  const { setNodeRef: setNodeRef1, isOver: isOverContainer1 } = useDroppable({ id: 'items1' });
+  const { setNodeRef: setNodeRef2, isOver: isOverContainer2 } = useDroppable({ id: 'items2' });
 
   const findContainer = (id: UniqueIdentifier) => {
     if (items1.includes(id)) return 'items1';
@@ -90,31 +90,19 @@ const App: React.FC = () => {
 
   const handleDragOver = ({ active, over }: DragOverEvent) => {
     const activeContainer = findContainer(active.id);
-    let overContainer = findContainer(over?.id || '');
+    const overContainer = over?.id && findContainer(over.id);
 
-    if (over?.id === 'items1' || over?.id === 'items2') {
-      overContainer = over.id;
-    }
-
-    if (!overContainer || !activeContainer || activeContainer === overContainer) {
+    if (!activeContainer || !overContainer || activeContainer === overContainer) {
       return;
-    }
-
-    if (overContainer === 'items1') {
-      setIsOver1(true);
-      setIsOver2(false);
-    } else if (overContainer === 'items2') {
-      setIsOver1(false);
-      setIsOver2(true);
     }
 
     const activeItems = activeContainer === 'items1' ? items1 : items2;
     const overItems = overContainer === 'items1' ? items1 : items2;
 
     const activeIndex = activeItems.indexOf(active.id);
-    const overIndex = over?.id ? overItems.indexOf(over.id) : overItems.length;
+    const overIndex = over.id ? overItems.indexOf(over.id) : overItems.length;
 
-    if (activeIndex !== -1) {
+    if (activeIndex !== -1 && overIndex !== -1) {
       activeItems.splice(activeIndex, 1);
       overItems.splice(overIndex, 0, active.id);
 
@@ -129,18 +117,13 @@ const App: React.FC = () => {
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    setActiveId(null);
-    setIsOver1(false);
-    setIsOver2(false);
-
-    if (!over) return;
+    if (!over) {
+      setActiveId(null);
+      return;
+    }
 
     const activeContainer = findContainer(active.id);
-    let overContainer = findContainer(over.id);
-
-    if (over?.id === 'items1' || over?.id === 'items2') {
-      overContainer = over.id;
-    }
+    const overContainer = findContainer(over.id);
 
     if (activeContainer && overContainer) {
       if (activeContainer === overContainer) {
@@ -159,9 +142,10 @@ const App: React.FC = () => {
     } else if (over?.id === 'items1' || over?.id === 'items2') {
       const newContainer = over.id === 'items1' ? 'items1' : 'items2';
       const setItems = newContainer === 'items1' ? setItems1 : setItems2;
-      const newItems = newContainer === 'items1' ? [...items1, active.id] : [...items2, active.id];
-      setItems(newItems);
+      setItems((items) => [...items, active.id]);
     }
+
+    setActiveId(null);
   };
 
   const activeItem = activeId
@@ -177,13 +161,13 @@ const App: React.FC = () => {
       onDragEnd={handleDragEnd}
     >
       <div className="container">
-        <DroppableContainer id="items1" items={items1} isOver={isOver1} setNodeRef={useDroppable({ id: 'items1' }).setNodeRef}>
+        <DroppableContainer id="items1" items={items1} isOver={isOverContainer1} setNodeRef={setNodeRef1}>
           {items1.map((id) => (
             <SortableItem key={id} id={id} />
           ))}
         </DroppableContainer>
 
-        <DroppableContainer id="items2" items={items2} isOver={isOver2} setNodeRef={useDroppable({ id: 'items2' }).setNodeRef}>
+        <DroppableContainer id="items2" items={items2} isOver={isOverContainer2} setNodeRef={setNodeRef2}>
           {items2.map((id) => (
             <SortableItem key={id} id={id} />
           ))}

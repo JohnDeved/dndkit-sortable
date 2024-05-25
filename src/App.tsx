@@ -51,16 +51,14 @@ interface DroppableContainerProps {
 
 const DroppableContainer: React.FC<DroppableContainerProps> = ({ id, items, children }) => {
   const { setNodeRef, isOver } = useDroppable({ id });
-  const style = {
-    backgroundColor: isOver ? 'lightblue' : undefined,
-  };
 
   return (
-    <div ref={setNodeRef} className="sortable-list" style={style}>
+    <div ref={setNodeRef} className="sortable-list">
       <SortableContext items={items} strategy={rectSortingStrategy}>
         {children}
         {items.length === 0 && <div className="placeholder">Drop items here</div>}
       </SortableContext>
+      {isOver && <div className="drop-overlay">Drop here</div>}
     </div>
   );
 };
